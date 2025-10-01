@@ -1,0 +1,39 @@
+name: Main
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Download and extract
+        run: |
+          BOOST_VERSION=${GITHUB_REF#refs/tags/v}
+          BOOST_SMART_PTR="https://github.com/boostorg/smart_ptr/archive/refs/tags/boost-${BOOST_VERSION}.tar.gz"
+          mkdir -p download && cd "$_"
+          curl -L $BOOST_SMART_PTR -o boost-smart_ptr.tar.gz
+          mkdir -p boost-smart_ptr && cd "$_"
+          tar -xzvf ../boost-smart_ptr.tar.gz --strip-components=1
+      - name: Copy headers
+        run: |
+          mkdir -p Sources/BoostSmartPtr/include/boost
+          cp -r download/boost-smart_ptr/include/boost/* Sources/BoostSmartPtr/include/boost/
+      - name: Push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "release"
+          git push --force origin HEAD:$GITHUB_REF
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref }}
+          name: Release ${{ github.ref_name }}
